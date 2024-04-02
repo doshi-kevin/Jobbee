@@ -1,0 +1,362 @@
+1. Create Virtual env 
+    virtualenv myenv
+    myenv/Scripts/activate
+    pip install django
+2. Start Project
+    django-admin startproject backend
+    pip install boto3 django-cors-headers django-dotenv django-filter django-storages djangorestframework djangorestframework-simplejwt geocoder gunicorn whitenoise psycopg2 dj-database-url
+3. Create database
+    Create a database in postgress (name - jobhive-api)
+    In settings.py 
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.contrib.gis.db.backends.postgis", //to even store map locations hence we use gis
+                "NAME": "jobhive-api",
+                "USER": "postgress",
+                "PASSWORD": "kevinbdoshi",
+                "HOST": "localhost",
+                "PORT": 5432
+            }
+        }
+        INSTALLED_APPS = [
+            "django.contrib.admin",
+            "django.contrib.auth",
+            "django.contrib.contenttypes",
+            "django.contrib.sessions",
+            "django.contrib.messages",
+            "django.contrib.staticfiles",
+            "django.contrib.gis",
+        ]
+
+    cd backend
+    python manage.py runserver // you will get an error - thus follow the next steps
+
+    NOTE - every password is 'kevinbdoshi'
+
+4. Install Postgis From StackBuilder
+5. Download and install GDAL:-
+        https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
+         Move it to backend folder
+         pip install .\GDAL-3.4.3-cp311-cp311-win_amd64.whl
+
+    GeoDjango Installation from Documentation:-
+        https://docs.djangoproject.com/en/4.0/ref/contrib/gis/install/
+
+        set OSGEO4W_ROOT=C:\OSGeo4W64
+        set GDAL_DATA=%OSGEO4W_ROOT%\share\gdal
+        set PROJ_LIB=%OSGEO4W_ROOT%\share\proj
+        set PATH=%PATH%;%OSGEO4W_ROOT%\bin
+        reg ADD "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v Path /t REG_EXPAND_SZ /f /d "%PATH%"
+        reg ADD "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v GDAL_DATA /t REG_EXPAND_SZ /f /d "%GDAL_DATA%"
+        reg ADD "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v PROJ_LIB /t REG_EXPAND_SZ /f /d "%PROJ_LIB%"
+
+    Create a file cslled setup.bat on desktop -> add above code and run it as administrator
+
+    import dotenv and type dotenc.read_dotenv()
+    Create a dotenv file
+    Set secret key to env file 
+    python manage.py migrate
+    python manage.py createsuperuser
+        name- kevin
+        email- convey2kevin1012@gmail.com
+        password- kevinbdoshi
+
+==========================================================================================================
+
+1. python manage.py startapp job
+    add fields to job/models.py
+    
+    go to developer.mapquest.com  password - 1012Kevin@1012
+    DELETE GEOCODER ACCOUNT AFTER YOU RUN PROJECT ONCE
+    add geocoder code
+    In settings.py in installed apps add - 
+        'rest_framework',
+        'corsheaders',
+        # 'storages'
+        'django.contrib.gis',
+        'django_filters',
+
+        'job.apps.JobConfig',
+    register model in admin.py
+     --python manage.py makemigrations
+     --python manage.py migrate
+
+     Create a test job from admin panel to check if models are workin properly
+
+2. Creating and using a Serializer //turn complex data to json format
+    job/serializers.py -->add code //Serializers are used to convert complex data types, such as Django model instances, into native Python data types that can be easily rendered into JSON, XML, or other content types for HTTP responses.
+
+    in  views.py --> add a function
+        The getAllJobs view function, decorated with @api_view(['GET']), retrieves all instances of the Job model from the database using Django's ORM, serializes them with the JobSerializer, and returns the serialized data as an HTTP response. The function effectively handles HTTP GET requests, responding with a list of all jobs in the database in a serialized format, ready for consumption by clients accessing the API.
+
+    in job/urls.py
+        //add get all jobs url
+    in backend/urls.py 
+            from django.urls import include
+            from django.contrib import admin
+            from django.urls import path
+
+            urlpatterns = [
+                path("admin/", admin.site.urls),
+                path('api/', include('job.urls'))
+            ]
+            
+    TEST THE GET API IN POSTMAN //if it gives all the jobs
+
+3. Get Job by Id 
+    in job/urls.py
+        The `getJob` view function, annotated with `@api_view(['GET'])`, retrieves a specific instance of the `Job` model from the database based on the provided primary key (`pk`). It utilizes Django's `get_object_or_404` function to fetch the job instance, and then serializes it using the `JobSerializer`. Finally, it returns the serialized data of the specified job as an HTTP response. This function is designed to handle HTTP GET requests for fetching details of a single job based on its primary key.
+    in job/urls.py
+        path('jobs/<str:pk>/', views.getJob, name='job'),
+
+3. Create A new Job
+    in job/views.py --> add function //The `newJob` view function, decorated with `@api_view(['POST'])`, handles HTTP POST requests for creating a new job entry. It extracts the data from the request payload using `request.data`, then creates a new `Job` instance in the database using Django's ORM (`Job.objects.create(**data)`), where `data` contains the extracted payload. Subsequently, it serializes the newly created job instance using the `JobSerializer`, and returns the serialized data as an HTTP response. This function is responsible for adding a new job entry to the database via POST requests sent to the corresponding API endpoint.
+    in job/urls.py 
+        path('jobs/new/', views.newJob, name='new_job'),
+
+4. Update a Job
+    in job/views.py --> add function // 
+    in job//urls.py
+        path('jobs/<str:pk>/update/', views.updateJob, name='update_job'),
+
+5. Delete Job by Id
+    in job/views.py...same steps
+    int job/urls.py 
+        path('jobs/<str:pk>/delete/', views.deleteJob, name='delete_job'),
+
+6. Getting stats of a Topic
+    in job/views.py
+    in job/urls.py  //ad code.....
+
+
+========================================================================================================
+
+1. Filter Functionality
+    Create job/filters.py
+        //refer the code
+
+    in views.py -->
+        filterset = JobsFilter(request.GET, queryset=Job.objects.all().order_by('id'))
+        serializer = JobSerializer(filterset.qs, many=True)
+
+2. Search Functionality
+    //added code in job/filters.py
+
+3. Adding Pagination
+    //updated code in job/views.py--> getAllJobs function
+
+=================================================================================================
+
+1. Authentication 
+    python manage.py startapp account 
+    In settings.py add --> "account.apps.AccountConfig"
+        REST_FRAMEWORK = {
+        'DEFAULT_AUTHENTICATION_CLASSES': (
+            'rest_framework_simplejwt.authentication.JWTAuthentication',
+        )
+    }
+    SIMPLE_JWT = {
+        'ACCESS_TOKEN_LIFETIME': timedelta(days=15),
+        'AUTH_HEADER_TYPES': ('Bearer',),
+        'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    }
+
+2. Create signup and user serializer
+    create serializers.py
+    //add code for signup and user serializer
+
+3. Register User
+    //In views.py
+        @api_view(['POST'])
+        def register(request):
+            data = request.data
+
+            user = SignUpSerializer(data=data)
+
+            if user.is_valid():
+                if not User.objects.filter(username=data['email']).exists():
+                user = User.objects.create(
+                    first_name = data['first_name'],
+                    last_name = data['last_name'],
+                    username = data['email'],
+                    email = data['email'],
+                    password = make_password(data['password'])
+                ) 
+
+                return Response({
+                        'message': 'User registered.'},
+                        status=status.HTTP_200_OK
+                    )
+                else:
+                    return Response({
+                        'error': 'User already exists'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+            else:
+                return Response(user.errors)
+
+    Create urls.py
+        path('register/', views.register, name='register'),
+
+    In backend/urls.py
+        path('api/', include('account.urls')),
+
+//Test the register api using postman
+ 
+4. Login view   
+    //Nothing just add some code in backend/urls.py i.e.
+        from rest_framework_simplejwt.views import TokenObtainPairView, TokenVerifyView
+        path('api/token/', TokenObtainPairView.as_view()),
+        path('api/token/verify/', TokenVerifyView.as_view())
+
+5. Get cuurent User Info
+    In views.py 
+        @api_view(['GET'])
+        @permission_classes([IsAuthenticated])
+        def currentUser(request):
+
+            user = UserSerializer(request.user)
+
+            return Response(user.data)
+
+6. Modelling User Profile
+    in model.py
+        from django.db import models
+        from django.contrib.auth.models import User
+
+
+        # Create your models here.
+        class UserProfile(models.Model):
+            user = models.OneToOneField(User, related_name='userprofile', on_delete=models.CASCADE)
+            resume = models.FileField(null=True)
+
+    python manage.py makemigrations 
+    python manage.py migrate
+
+    Edit serializers.py file
+    Edit job/views.py to allow only authorized users to create and delete jobs
+
+7.Update User
+
+    In account./views.py
+        @api_view(['PUT'])
+        @permission_classes([IsAuthenticated])
+        def updateUser(request):
+            user = request.user
+
+
+            data = request.data
+
+            user.first_name = data['first_name']
+            user.last_name = data['last_name']
+            user.username = data['email']
+            user.email = data['email']
+
+            if data['password'] != '':
+                user.password = make_password(data['password'])
+
+            user.save()
+
+            serializer = UserSerializer(user, many=False)
+            return Response(serializer.data)
+
+====================================================================================================
+1. Exception Handling
+    Create a folder in backend named utils-->error_views.py 
+    //Add code for errors
+    In main urls.py 
+        handler404 = 'utils.error_views.handler404'
+        handler500 = 'utils.error_views.handler500'
+    In settings.py - comment debug-True
+        DEBUG = False
+
+2. Custom Exception Handling
+    in utils, create custom_exception handler.py
+    //add code
+
+=====================================================================================================
+
+1. AWS setup
+    user - doshi_kevin  pass - Kevin@123
+    Perform aws DEFAULT_AUTHENTICATION_CLASSES
+
+2. Create a function in accounts/views.py to upload resume
+    update urls.py
+    edit models.py
+    //resume should upload on bucket -  if not - recreate the user iam
+    Create validators.py 
+
+========================================================================================================
+
+APPLY TO JOB - backend
+
+1. Modelling Candidates Applied
+    In jobs/models.py 
+        class CandidatesApplied(models.Model):
+            job = models.ForeignKey(Job, on_delete=models.CASCADE)
+            user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+            resume = models.CharField(max_length=200)
+            appliedAt = models.DateTimeField(auto_now_add=True)
+
+    python manage.py makemigrateion
+    python manage.py migrate
+
+2. Candidates Applied Serializer
+    in serializer.py
+        class CandidatesAppliedSerializer(serializers.ModelSerializer):
+
+            job = JobSerializer()
+
+            class Meta:
+                model = CandidatesApplied
+                fields = ('user', 'resume', 'appliedAt', 'job')
+
+3. Apply to a job
+    In job/views.py --> Add function
+    In urls.py --> add path
+
+4.Get all jobs the user has appliedAt
+    In job/views.py --> Add function
+    In urls.py --> add path
+
+5. // For frontend - get user applied to this job - True or False
+    @api_view(['GET'])
+    @permission_classes([IsAuthenticated])
+    def isApplied(request, pk):
+
+        user = request.user
+        job = get_object_or_404(Job, id=pk)
+
+        applied = job.candidatesapplied_set.filter(user=user).exists()
+
+        return Response(applied) #If current user is present in candidates applied - for frontend 
+
+6. //Get all jobs user has created
+    @api_view(['GET'])
+    @permission_classes([IsAuthenticated])
+    def getCurrentUserJobs(request):
+
+        args = { 'user': request.user.id }
+
+        jobs = Job.objects.filter(**args)
+        serializer = JobSerializer(jobs, many=True)
+
+        return Response(serializer.data)
+
+7.// Candadates of a particular Job
+        @api_view(['GET'])
+        @permission_classes([IsAuthenticated])
+        def getCandidatesApplied(request, pk):
+
+            user = request.user
+            job = get_object_or_404(Job, id=pk)
+
+            if job.user != user:
+                return Response({ 'error': 'You can not acces this job' }, status=status.HTTP_403_FORBIDDEN)
+
+            candidates = job.candidatesapplied_set.all()
+
+            serializer = CandidatesAppliedSerializer(candidates, many=True)
+
+            return Response(serializer.data)

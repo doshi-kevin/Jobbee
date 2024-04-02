@@ -1,0 +1,48 @@
+1. Connect backend and Frontend
+    In next.config.js
+        add api url to backend server
+    In index.js. Use getServerSideProps() 
+        nextjs provides inbuilt function to communicate with backend and get data
+            export async function getServerSideProps() {
+            const res = await axios.get(`${process.env.API_URL}/api/jobs/`);
+            const data = res.data;
+
+            return {
+                props: {
+                data,
+                },
+            };
+            }  //Get data from an api url
+
+    In settings.py add allowed host 127.0.0.1
+    In settigs.py add
+        CORS_ALLOWED_ORIGINS = [
+            'http://localhost:3000',
+            'http://127.0.0.1:3000'
+
+        ]
+
+//You can pass this data which you get from backend as props to any component 
+ eg - <Home data={data} />
+
+ In Home.js
+    const Home = ({ data }) => {
+    const { jobs, count, resPerPage } = data;
+
+    </div>
+          {jobs && jobs.map((job) => <JobItem key={job.id} job={job} />)}
+    </div>
+
+
+//remove mapbox after usage
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  env: {
+    API_URL: "http://localhost:8000",
+    MAPBOX_ACCESS_TOKEN: 'pk.eyJ1IjoiZG9zaGkta2V2aW4iLCJhIjoiY2x1aTZsMWZ6MDExNDJycGhrdXR1dTBobCJ9.iqTkk_eDcjdkAQ78OBp7WA'
+  },
+}
+
+module.exports = nextConfig
